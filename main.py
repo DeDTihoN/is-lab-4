@@ -56,7 +56,7 @@ class CSP:
         Генерує повний розклад.
         """
         # Якщо всі змінні заповнені, повертаємо розклад
-        if len(self.assignments) == len(self.domains["time"]) * len(self.domains["group"]):
+        if len(self.assignments) == CNT_LECTURES * len(self.domains["group"]):
             return self.assignments
 
         # Вибираємо змінну для присвоєння
@@ -70,11 +70,21 @@ class CSP:
                             "lecturer": lecturer,
                             "classroom": classroom,
                         }
+                        # Перевіряємо, чи присвоєння не порушує обмеження
                         if self.is_consistent(new_assignment):
                             # Додаємо подію до розкладу
                             self.assignments.append(new_assignment)
 
-        return self.assignments
+                            # Рекурсивний виклик
+                            result = self.backtracking_search()
+                            if result is not None:
+                                return result
+
+                            # Відкат
+                            self.assignments.pop()
+
+        # Якщо не вдалося знайти рішення, повертаємо None
+        return None
 
 
 # Змінні
@@ -82,11 +92,13 @@ variables = ["lecturer", "classroom", "group", "time"]
 
 # Області визначення
 domains = {
-    "lecturer": ["lecturer 1", "lecturer 2", "lecturer 3"],
+    "lecturer": ["lecturer 1", "lecturer 2", "lecturer 3", "lecturer 4"],
     "time": ["Monday 9:00", "Monday 11:00", "Tuesday 9:00", "Tuesday 11:00"],
     "classroom": ["Auditorium 101", "Auditorium 102", "Auditorium 103"],
     "group": ["Group 1", "Group 2", "Group 3"],
 }
+
+CNT_LECTURES = 3
 
 # Обмеження
 constraints = [
@@ -117,12 +129,25 @@ constraints = [
         "predicate": lambda events, l, t: (l, t) in [
             ("lecturer 1", "Monday 9:00"),
             ("lecturer 1", "Monday 11:00"),
+            ("lecturer 1", "Tuesday 11:00"),
+            ("lecturer 2", "Monday 9:00"),
+            ("lecturer 2", "Monday 11:00"),
             ("lecturer 2", "Tuesday 9:00"),
             ("lecturer 2", "Tuesday 11:00"),
             ("lecturer 3", "Monday 9:00"),
             ("lecturer 3", "Monday 11:00"),
+            ("lecturer 3", "Tuesday 9:00"),
+            ("lecturer 3", "Tuesday 11:00"),
+            ("lecturer 4", "Tuesday 9:00"),
         ],
     },
+    # Обмеження на кількість пар для кожної групи.
+    {
+        "vars": ("group",),
+        "predicate": lambda events, g: sum(
+            e["group"] == g for e in events
+        ) <= CNT_LECTURES,
+    }
 ]
 
 # Ініціалізація CSP
